@@ -5,7 +5,10 @@ from processors.video_processor import VideoProcessor
 
 class CameraProcessor:
     """Manages LIVE monitoring across multiple cameras at once. Each camera
-    gets its own VideoProcessor """
+    gets its own VideoProcessor (already configured with that camera's own
+    detector instance/thresholds) running in its own thread, since live
+    sources run indefinitely and in parallel. For offline/recorded-file
+    processing, use BatchProcessor instead."""
 
     def __init__(self):
         self._processors = {}   # camera_name -> VideoProcessor
