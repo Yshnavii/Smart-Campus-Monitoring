@@ -1,0 +1,11 @@
+# Core (always required)
+ultralytics>=8.2.0
+opencv-python>=4.9.0
+numpy>=1.26.0
+
+# SAHIOvercrowdingDetector (--sahi)
+sahi>=0.11.16
+
+# needed if you enable these notification channels
+paho-mqtt>=1.6.1   # MQTT alerts (ENABLE_MQTT=true)
+twilio>=9.0.0      # SMS alerts (TWILIO_SID / TWILIO_AUTH_TOKEN set)
