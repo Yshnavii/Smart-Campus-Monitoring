@@ -3,3 +3,13 @@ __pycache__/
 .venv/
 venv/
 .env
+*.db
+*.db-journal
+*.sqlite3
+*.mp4
+*.avi
+*.mov
+batch_output/
+output_frames/
+*.pt
+*.pth

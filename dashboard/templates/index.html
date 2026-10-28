@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smart Campus Monitoring</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; background: #f4f5f7; color: #1d2433; }
+  header { background: #1d2433; color: #fff; padding: 14px 24px; display: flex; justify-content: space-between; align-items: baseline; }
+  header h1 { font-size: 18px; margin: 0; }
+  #status { font-size: 12px; opacity: 0.8; }
+  main { padding: 20px 24px; max-width: 1100px; margin: 0 auto; }
+  h2 { font-size: 15px; margin: 24px 0 10px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+  .card, .panel { background: #fff; border-radius: 8px; padding: 14px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .card h3 { margin: 0 0 8px; font-size: 15px; }
+  .big { font-size: 38px; font-weight: 600; line-height: 1.1; margin-top: 10px; }
+  .muted { color: #6b7280; font-size: 13px; }
+  .small { font-size: 12px; margin-top: 8px; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; color: #fff; }
+  .ok { background: #16a34a; } .over { background: #dc2626; } .offline { background: #6b7280; }
+  .bar { height: 8px; background: #e5e7eb; border-radius: 4px; margin: 10px 0 4px; overflow: hidden; }
+  .fill { height: 100%; background: #2563eb; }
+  .controls { display: flex; gap: 10px; margin-bottom: 10px; }
+  select { padding: 5px 8px; font-size: 13px; }
+  .chart-box { position: relative; height: 320px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid #e5e7eb; }
+  th { color: #6b7280; font-weight: 500; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Smart Campus Monitoring</h1>
+  <span id="status">Loading...</span>
+</header>
+<main>
+  <h2>Live occupancy</h2>
+  <div id="cameras" class="cards"></div>
+
+  <h2>History</h2>
+  <div class="panel">
+    <div class="controls">
+      <select id="camera-select"></select>
+      <select id="hours-select">
+        <option value="1">Last hour</option>
+        <option value="6" selected>Last 6 hours</option>
+        <option value="24">Last 24 hours</option>
+        <option value="168">Last 7 days</option>
+      </select>
+    </div>
+    <div class="chart-box"><canvas id="chart"></canvas></div>
+    <p id="chart-note" class="muted"></p>
+  </div>
+
+  <h2>Recent alerts</h2>
+  <div class="panel">
+    <table>
+      <thead><tr><th>Time</th><th>Camera</th><th>People</th><th>Density (people/MP)</th></tr></thead>
+      <tbody id="alerts"></tbody>
+    </table>
+  </div>
+</main>
+
+<script>
+const REFRESH_MS = 5000;
+let chart = null;
+
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+async function getJSON(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(url + " returned " + res.status);
+  return res.json();
+}
+
+function renderCameras(cameras) {
+  const box = document.getElementById("cameras");
+  box.replaceChildren();
+  if (cameras.length === 0) {
+    box.appendChild(el("p", "muted", "No readings yet. Start main.py to begin collecting data."));
+    return;
+  }
+  for (const c of cameras) {
+    const card = el("div", "card");
+    card.appendChild(el("h3", "", c.camera_name));
+    const label = !c.online ? "OFFLINE" : (c.alert ? "OVERCROWDED" : "NORMAL");
+    const cls = !c.online ? "offline" : (c.alert ? "over" : "ok");
+    card.appendChild(el("span", "badge " + cls, label));
+    card.appendChild(el("div", "big", String(c.count)));
+    card.appendChild(el("div", "muted", "people now (average " + c.avg_count.toFixed(1) + ")"));
+    if (c.occupancy_pct !== null) {
+      const bar = el("div", "bar");
+      const fill = el("div", "fill");
+      fill.style.width = c.occupancy_pct + "%";
+      bar.appendChild(fill);
+      card.appendChild(bar);
+      card.appendChild(el("div", "muted", "Occupancy " + c.occupancy_pct.toFixed(0) + "%"));
+    }
+    card.appendChild(el("div", "muted small", "Updated " + c.age_seconds + "s ago"));
+    box.appendChild(card);
+  }
+}
+
+function fillCameraSelect(cameras) {
+  const select = document.getElementById("camera-select");
+  const names = cameras.map(c => c.camera_name);
+  const current = select.value;
+  const existing = Array.from(select.options).map(o => o.value);
+  if (JSON.stringify(names) === JSON.stringify(existing)) return;
+  select.replaceChildren();
+  for (const name of names) {
+    const option = el("option", "", name);
+    option.value = name;
+    select.appendChild(option);
+  }
+  if (names.includes(current)) select.value = current;
+}
+
+function renderAlerts(alerts) {
+  const body = document.getElementById("alerts");
+  body.replaceChildren();
+  if (alerts.length === 0) {
+    const row = el("tr");
+    const cell = el("td", "muted", "No alerts yet.");
+    cell.colSpan = 4;
+    row.appendChild(cell);
+    body.appendChild(row);
+    return;
+  }
+  for (const a of alerts) {
+    const row = el("tr");
+    row.appendChild(el("td", "", new Date(a.timestamp * 1000).toLocaleString()));
+    row.appendChild(el("td", "", a.camera_name));
+    row.appendChild(el("td", "", String(a.count)));
+    row.appendChild(el("td", "", a.density.toFixed(1)));
+    body.appendChild(row);
+  }
+}
+
+async function renderHistory() {
+  const camera = document.getElementById("camera-select").value;
+  const hours = document.getElementById("hours-select").value;
+  const note = document.getElementById("chart-note");
+  if (!camera) return;
+  if (typeof Chart === "undefined") {
+    note.textContent = "Chart library could not be loaded (the page needs internet access for it).";
+    return;
+  }
+  const rows = await getJSON("/api/history?camera=" + encodeURIComponent(camera) + "&hours=" + hours);
+  note.textContent = rows.length === 0 ? "No readings in this time range." : "";
+  const labels = rows.map(r => new Date(r.time * 1000).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"}));
+  const data = {
+    labels: labels,
+    datasets: [
+      {label: "Average people", data: rows.map(r => r.avg_count), borderColor: "#2563eb", tension: 0.2},
+      {label: "Peak people", data: rows.map(r => r.max_count), borderColor: "#dc2626", tension: 0.2},
+    ],
+  };
+  if (chart) {
+    chart.data = data;
+    chart.update();
+  } else {
+    chart = new Chart(document.getElementById("chart"), {
+      type: "line", data: data,
+      options: {animation: false, responsive: true, maintainAspectRatio: false},
+    });
+  }
+}
+
+async function refresh() {
+  try {
+    const results = await Promise.all([getJSON("/api/cameras"), getJSON("/api/alerts?limit=15")]);
+    renderCameras(results[0]);
+    fillCameraSelect(results[0]);
+    renderAlerts(results[1]);
+    await renderHistory();
+    document.getElementById("status").textContent = "Last refresh " + new Date().toLocaleTimeString();
+  } catch (err) {
+    document.getElementById("status").textContent = "Cannot reach the server: " + err.message;
+  }
+}
+
+document.getElementById("camera-select").addEventListener("change", renderHistory);
+document.getElementById("hours-select").addEventListener("change", renderHistory);
+refresh();
+setInterval(refresh, REFRESH_MS);
+</script>
+</body>
+</html>

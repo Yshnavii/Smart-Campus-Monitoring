@@ -33,10 +33,24 @@ class VideoProcessor:
             raise IOError(f"Could not open video source for {self.camera_name}: {self.source}")
         return cap
 
+    def _reconnect(self):
+        """Keep trying to reopen a live source until it works or stop() is called."""
+        while self._running:
+            try:
+                return self._open_capture()
+            except IOError:
+                print(f"[{self.camera_name}] Source unreachable, retrying in 5s...")
+                time.sleep(5)
+        return None
+
     def run(self, display=False):
         """Blocking loop — run in its own thread/process per camera, or
         call directly (blocking) for a single recorded file."""
-        cap = self._open_capture()
+        self._running = True
+        # A live camera may be offline at startup: keep retrying. A file must open or fail loudly.
+        cap = self._reconnect() if self.is_live else self._open_capture()
+        if cap is None:
+            return
         self.detector.reset()
 
         writer = None
@@ -46,7 +60,6 @@ class VideoProcessor:
             h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
             writer = cv2.VideoWriter(self.output_path, cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))
 
-        self._running = True
         frame_idx = 0
         last_alert_state = False
         boxes = []
@@ -60,7 +73,9 @@ class VideoProcessor:
                         print(f"[{self.camera_name}] Stream dropped, reconnecting...")
                         time.sleep(2)
                         cap.release()
-                        cap = self._open_capture()
+                        cap = self._reconnect()
+                        if cap is None:
+                            break  # stop() was called while waiting
                         continue
                     else:
                         break  # end of a finite file — done, not an error
@@ -97,7 +112,8 @@ class VideoProcessor:
                     if cv2.waitKey(1) & 0xFF == ord("q"):
                         break
         finally:
-            cap.release()
+            if cap is not None:
+                cap.release()
             if writer:
                 writer.release()
             if display:
