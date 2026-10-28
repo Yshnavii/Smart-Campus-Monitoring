@@ -108,3 +108,36 @@ class Database:
                 )
             row = cur.fetchone()
             return row[0] if row else None
+
+    def camera_names(self):
+        """Every camera that has at least one logged reading."""
+        with self._connect() as conn:
+            cur = conn.execute("SELECT DISTINCT camera_name FROM detections ORDER BY camera_name")
+            return [row[0] for row in cur.fetchall()]
+
+    def latest_detection(self, camera_name):
+        """Most recent reading for a camera as a dict, or None if there is none."""
+        with self._connect() as conn:
+            cur = conn.execute(
+                "SELECT timestamp, count, avg_count, density, occupancy_pct, alert FROM detections "
+                "WHERE camera_name = ? ORDER BY timestamp DESC LIMIT 1",
+                (camera_name,),
+            )
+            row = cur.fetchone()
+        if row is None:
+            return None
+        return {"timestamp": row[0], "count": row[1], "avg_count": row[2],
+                "density": row[3], "occupancy_pct": row[4], "alert": bool(row[5])}
+
+    def history(self, camera_name, since_timestamp, bucket_seconds=60):
+        """Readings since a time, averaged into fixed-size buckets so a chart
+        gets a few hundred points instead of every single row."""
+        with self._connect() as conn:
+            cur = conn.execute(
+                "SELECT CAST(timestamp / ? AS INTEGER) * ? AS bucket, AVG(count), MAX(count), MAX(occupancy_pct) "
+                "FROM detections WHERE camera_name = ? AND timestamp >= ? "
+                "GROUP BY bucket ORDER BY bucket",
+                (bucket_seconds, bucket_seconds, camera_name, since_timestamp),
+            )
+            return [{"time": r[0], "avg_count": round(r[1], 1), "max_count": r[2], "max_occupancy": r[3]}
+                    for r in cur.fetchall()]

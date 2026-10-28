@@ -1,5 +1,6 @@
 import time
 from collections import defaultdict
+from datetime import datetime
 
 
 class AlertHandler:
@@ -31,7 +32,9 @@ class AlertHandler:
 
     def _fire(self, camera_name, frame_idx, count, density):
         subject = f"[OVERCROWDED] {camera_name}"
-        message = f"{camera_name}: {count} people detected (density={density:.2f} people/MP) at frame {frame_idx}."
+        now = datetime.now().strftime("%d %b %Y, %I:%M:%S %p")
+        message = (f"{camera_name}: {count} people detected "
+                   f"(density={density:.2f} people/MP) at {now} (frame {frame_idx}).")
 
         for notifier in self.notifiers:
             notifier.send(subject, message)

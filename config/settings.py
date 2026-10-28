@@ -19,11 +19,11 @@ class CameraSpec:
 # Replace with real cameras, or load this list from JSON/YAML/DB instead.
 DEFAULT_CAMERAS = [
     CameraSpec(name="Library Reading Hall", source="0",
-               max_capacity=60, count_threshold=50),
-    CameraSpec(name="Seminar Hall A", source="rtsp://192.168.1.10:554/stream1",
-               max_capacity=150, count_threshold=120, use_sahi=True),
-    CameraSpec(name="CS Lab 2", source="rtsp://192.168.1.11:554/stream1",
-               max_capacity=40, count_threshold=35),
+               max_capacity=60, count_threshold=20),
+    # CameraSpec(name="Seminar Hall A", source="rtsp://192.168.1.10:554/stream1",
+    #            max_capacity=150, count_threshold=120, use_sahi=True),
+    # CameraSpec(name="CS Lab 2", source="rtsp://192.168.1.11:554/stream1",
+    #            max_capacity=40, count_threshold=35),
 ]
 
 NOTIFICATION = {
@@ -46,3 +46,4 @@ NOTIFICATION = {
 DB_PATH = os.getenv("DB_PATH", "campus_monitoring.db")
 MODEL_PATH = os.getenv("MODEL_PATH", "yolov8n.pt")
 ALERT_COOLDOWN_SECONDS = int(os.getenv("ALERT_COOLDOWN_SECONDS", "120"))
+DB_LOG_INTERVAL_SECONDS = int(os.getenv("DB_LOG_INTERVAL_SECONDS", "5"))
