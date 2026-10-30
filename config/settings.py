@@ -16,14 +16,16 @@ class CameraSpec:
     output_path: str = None  # None = don't save an annotated video for this camera
 
 
-# Replace with real cameras, or load this list from JSON/YAML/DB instead.
+# One entry per room. Each name must be unique: it is the room button in the dashboard.
+# The sources below all play download.mp4 as a stand-in; replace each with that room's
+# own camera. A webcam ("0") can only be used by one room at a time.
 DEFAULT_CAMERAS = [
-    CameraSpec(name="Library Reading Hall", source="0",
-               max_capacity=60, count_threshold=20),
-    # CameraSpec(name="Seminar Hall A", source="rtsp://192.168.1.10:554/stream1",
-    #            max_capacity=150, count_threshold=120, use_sahi=True),
-    # CameraSpec(name="CS Lab 2", source="rtsp://192.168.1.11:554/stream1",
-    #            max_capacity=40, count_threshold=35),
+    CameraSpec(name="Classroom 1", source="0",
+               max_capacity=30, count_threshold=15),            # laptop webcam
+    CameraSpec(name="Library", source="http://10.218.239.114:8080/video",
+               max_capacity=60, count_threshold=15),            # phone camera
+    CameraSpec(name="Lab A", source="tcp://192.168.1.60:8888",
+               max_capacity=20, count_threshold=15),            # Raspberry Pi
 ]
 
 NOTIFICATION = {

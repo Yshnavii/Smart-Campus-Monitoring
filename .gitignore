@@ -13,3 +13,7 @@ batch_output/
 output_frames/
 *.pt
 *.pth
+alert_settings.json
+alert_settings.json.tmp
+snapshots/
+monitor.log
