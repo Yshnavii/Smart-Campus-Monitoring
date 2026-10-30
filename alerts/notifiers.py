@@ -3,6 +3,8 @@ import ssl
 from abc import ABC, abstractmethod
 from email.mime.text import MIMEText
 
+from utils import alert_settings
+
 
 class BaseNotifier(ABC):
     @abstractmethod
@@ -19,24 +21,69 @@ class EmailNotifier(BaseNotifier):
         self.smtp_password = smtp_password
         self.recipients = [r for r in recipients if r]
 
-    def send(self, subject, message):
-        if not self.recipients:
-            return False
+    def _credentials(self):
+        """(sender, password, recipients) to use for the next send."""
+        return self.smtp_user, self.smtp_password, self.recipients
+
+    def send_detailed(self, subject, message):
+        """Returns (ok, error_text). The error text never contains the password."""
+        user, password, recipients = self._credentials()
+        if not recipients:
+            return False, "No recipient emails are set."
+        if not user or not password:
+            return False, "Sender email or app password is missing."
         try:
             msg = MIMEText(message)
             msg["Subject"] = subject
-            msg["From"] = self.smtp_user
-            msg["To"] = ", ".join(self.recipients)
+            msg["From"] = user
+            msg["To"] = ", ".join(recipients)
 
             context = ssl.create_default_context()
-            with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
-                server.starttls(context=context)
-                server.login(self.smtp_user, self.smtp_password)
-                server.sendmail(self.smtp_user, self.recipients, msg.as_string())
-            return True
+            use_ssl = int(self.smtp_port) == 465   # 465 = implicit SSL, 587 = STARTTLS
+            if use_ssl:
+                server_cm = smtplib.SMTP_SSL(self.smtp_host, self.smtp_port, timeout=20, context=context)
+            else:
+                server_cm = smtplib.SMTP(self.smtp_host, self.smtp_port, timeout=20)
+            with server_cm as server:
+                if not use_ssl:
+                    server.starttls(context=context)
+                server.login(user, password)
+                server.sendmail(user, recipients, msg.as_string())
+            return True, ""
+        except smtplib.SMTPAuthenticationError:
+            return False, ("The mail server rejected the login. Check the sender email and use an "
+                           "app password (Gmail needs 2-step verification), not the normal password.")
         except Exception as exc:
-            print(f"[EmailNotifier] Failed to send email: {exc}")
-            return False
+            return False, f"{type(exc).__name__}: {exc}"
+
+    def send(self, subject, message):
+        ok, error = self.send_detailed(subject, message)
+        if not ok:
+            print(f"[EmailNotifier] Failed to send email: {error}")
+        return ok
+
+
+class DynamicEmailNotifier(EmailNotifier):
+    """
+    EmailNotifier that reads the sender, app password and recipients saved from
+    the dashboard each time it sends, so changes apply to the next alert without
+    restarting main.py. The values passed to the constructor are only a fallback
+    for when nothing has been saved yet.
+    """
+
+    def __init__(self, smtp_host, smtp_port, fallback_user="", fallback_password="",
+                 fallback_recipients=()):
+        super().__init__(smtp_host, smtp_port, fallback_user, fallback_password,
+                         list(fallback_recipients))
+
+    def _credentials(self):
+        saved = alert_settings.load()
+        if saved["sender_email"] and saved["app_password"]:
+            user, password = saved["sender_email"], saved["app_password"]
+        else:
+            user, password = self.smtp_user, self.smtp_password
+        saved_recipients = [e.strip() for e in saved["recipients"].split(",") if e.strip()]
+        return user, password, (saved_recipients or self.recipients)
 
 
 class SMSNotifier(BaseNotifier):

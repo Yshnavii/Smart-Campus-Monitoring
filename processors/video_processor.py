@@ -1,6 +1,8 @@
+import os
 import time
 import cv2
 
+from utils.snapshots import slugify
 from utils.visualization import draw_overlay
 
 
@@ -20,10 +22,36 @@ class VideoProcessor:
         self.detector = detector
         self.output_path = output_path
         self.frame_stride = frame_stride
-        self.alert_callback = alert_callback      # fires once when alert state turns True
+        self.alert_callback = alert_callback      # fires on every detection while overcrowded (AlertHandler throttles it)
         self.result_callback = result_callback    # fires on every processed frame
         self.is_live = is_live                    # True: reconnect on drop (camera). False: stop at EOF (file).
         self._running = False
+
+        # The dashboard sets SNAPSHOT_DIR when it starts main.py. Without it (plain
+        # `python main.py`) no snapshots are written.
+        snapshot_dir = os.getenv("SNAPSHOT_DIR", "")
+        self._snapshot_path = (os.path.join(snapshot_dir, slugify(camera_name) + ".jpg")
+                               if snapshot_dir else None)
+        self._last_snapshot = 0.0
+
+    def _save_snapshot(self, image):
+        """Write the annotated frame for the dashboard, at most once per second."""
+        if not self._snapshot_path or time.time() - self._last_snapshot < 1.0:
+            return
+        self._last_snapshot = time.time()
+        try:
+            h, w = image.shape[:2]
+            if w > 960:
+                image = cv2.resize(image, (960, int(h * 960 / w)))
+            ok, buf = cv2.imencode(".jpg", image, [cv2.IMWRITE_JPEG_QUALITY, 70])
+            if not ok:
+                return
+            tmp = self._snapshot_path + ".tmp"
+            with open(tmp, "wb") as f:
+                f.write(buf.tobytes())
+            os.replace(tmp, self._snapshot_path)   # atomic: the browser never gets half a file
+        except OSError:
+            pass  # e.g. Windows briefly locking the file while it is being read; try again next second
 
     def _open_capture(self):
         # Allow plain integers ("0", "1") for local webcams
@@ -61,7 +89,6 @@ class VideoProcessor:
             writer = cv2.VideoWriter(self.output_path, cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))
 
         frame_idx = 0
-        last_alert_state = False
         boxes = []
         alert, avg_count, density, occupancy = False, 0.0, 0.0, None
 
@@ -98,12 +125,13 @@ class VideoProcessor:
                             "alert": alert,
                         })
 
-                    if alert and not last_alert_state and self.alert_callback:
+                    # Called on every detection while overcrowded. AlertHandler's cooldown
+                    # decides how often an email actually goes out.
+                    if alert and self.alert_callback:
                         self.alert_callback(self.camera_name, frame_idx, len(boxes), density)
 
-                    last_alert_state = alert
-
                 annotated = draw_overlay(frame, boxes, alert, avg_count, density, occupancy)
+                self._save_snapshot(annotated)
 
                 if writer:
                     writer.write(annotated)

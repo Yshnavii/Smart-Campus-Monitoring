@@ -1,11 +1,12 @@
 import argparse
+import signal
 
 from config.settings import DEFAULT_CAMERAS, NOTIFICATION, DB_PATH, MODEL_PATH, ALERT_COOLDOWN_SECONDS
 from detectors.yolo_detector import OvercrowdingDetector
 from detectors.sahi_detector import SAHIOvercrowdingDetector
 from processors.camera_processor import CameraProcessor
 from alerts.alert_handler import AlertHandler
-from alerts.notifiers import EmailNotifier, SMSNotifier, MQTTNotifier
+from alerts.notifiers import DynamicEmailNotifier, SMSNotifier, MQTTNotifier
 from utils.database import Database
 
 
@@ -23,13 +24,13 @@ def build_detector(camera_spec):
 
 
 def build_notifiers():
-    notifiers = []
-    if NOTIFICATION["smtp_user"]:
-        notifiers.append(EmailNotifier(
-            NOTIFICATION["smtp_host"], NOTIFICATION["smtp_port"],
-            NOTIFICATION["smtp_user"], NOTIFICATION["smtp_password"],
-            NOTIFICATION["alert_emails"],
-        ))
+    # Always created: the sender, app password and recipients saved from the dashboard
+    # are read at send time. The values from .env / settings.py are only a fallback.
+    notifiers = [DynamicEmailNotifier(
+        NOTIFICATION["smtp_host"], NOTIFICATION["smtp_port"],
+        NOTIFICATION["smtp_user"], NOTIFICATION["smtp_password"],
+        NOTIFICATION["alert_emails"],
+    )]
     if NOTIFICATION["twilio_sid"]:
         notifiers.append(SMSNotifier(
             NOTIFICATION["twilio_sid"], NOTIFICATION["twilio_auth_token"],
@@ -40,10 +41,18 @@ def build_notifiers():
     return notifiers
 
 
+def _graceful_exit(signum, frame):
+    # The dashboard's Stop button sends SIGTERM (Linux/macOS/Pi). Treat it like Ctrl+C
+    # so cameras are released properly.
+    raise KeyboardInterrupt
+
+
 def main():
     parser = argparse.ArgumentParser(description="Smart Campus Monitoring")
     parser.add_argument("--display", action="store_true", help="Show annotated video windows")
     args = parser.parse_args()
+
+    signal.signal(signal.SIGTERM, _graceful_exit)
 
     database = Database(DB_PATH)
     alert_handler = AlertHandler(build_notifiers(), database=database,

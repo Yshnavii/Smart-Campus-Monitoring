@@ -3,194 +3,354 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Smart Campus Monitoring</title>
+<title>CrowdSense</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
-  body { font-family: system-ui, sans-serif; margin: 0; background: #f4f5f7; color: #1d2433; }
-  header { background: #1d2433; color: #fff; padding: 14px 24px; display: flex; justify-content: space-between; align-items: baseline; }
+  :root { --bg:#f4f5f7; --fg:#1d2433; --panel:#fff; --muted:#6b7280; --line:#e5e7eb; --hdr:#1d2433; --blue:#2563eb; --soft:#eff6ff; --green:#16a34a; --red:#dc2626; --border:#d1d5db; --shadow:0 1px 3px rgba(0,0,0,0.08); }
+  @media (prefers-color-scheme: dark) {
+    :root { color-scheme: dark; --bg:#0f141c; --fg:#e5e7eb; --panel:#1a2230; --muted:#9ca3af; --line:#2d3748; --hdr:#161d2a; --soft:#1e2f52; --border:#374151; --shadow:none; }
+  }
+  body { font-family: system-ui, sans-serif; margin: 0; background: var(--bg); color: var(--fg); }
+  header { background: var(--hdr); color: #fff; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
   header h1 { font-size: 18px; margin: 0; }
-  #status { font-size: 12px; opacity: 0.8; }
-  main { padding: 20px 24px; max-width: 1100px; margin: 0 auto; }
-  h2 { font-size: 15px; margin: 24px 0 10px; }
-  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
-  .card, .panel { background: #fff; border-radius: 8px; padding: 14px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-  .card h3 { margin: 0 0 8px; font-size: 15px; }
-  .big { font-size: 38px; font-weight: 600; line-height: 1.1; margin-top: 10px; }
-  .muted { color: #6b7280; font-size: 13px; }
-  .small { font-size: 12px; margin-top: 8px; }
-  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; color: #fff; }
-  .ok { background: #16a34a; } .over { background: #dc2626; } .offline { background: #6b7280; }
-  .bar { height: 8px; background: #e5e7eb; border-radius: 4px; margin: 10px 0 4px; overflow: hidden; }
-  .fill { height: 100%; background: #2563eb; }
-  .controls { display: flex; gap: 10px; margin-bottom: 10px; }
-  select { padding: 5px 8px; font-size: 13px; }
-  .chart-box { position: relative; height: 320px; }
+  header h1 small { font-weight: 400; opacity: 0.7; font-size: 12px; margin-left: 8px; }
+  .ctl { display: flex; align-items: center; gap: 14px; }
+  .pill { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; }
+  .dot { width: 11px; height: 11px; border-radius: 50%; background: #6b7280; }
+  .pill.on .dot { background: #22c55e; box-shadow: 0 0 6px #22c55e; }
+  .pill.crash .dot { background: #ef4444; }
+  button { border: 0; border-radius: 6px; padding: 8px 16px; font-size: 14px; font-weight: 600; cursor: pointer; color: #fff; font-family: inherit; }
+  button:disabled { opacity: 0.5; cursor: wait; }
+  button.start { background: var(--green); }
+  button.stop { background: var(--red); }
+  button.plain { background: var(--blue); }
+  button.ghost { background: transparent; color: var(--blue); border: 1px solid var(--border); padding: 6px 12px; font-size: 13px; }
+  main { padding: 18px 24px; max-width: 1100px; margin: 0 auto; }
+  h2 { font-size: 15px; margin: 22px 0 10px; }
+  .rooms { display: flex; flex-wrap: wrap; gap: 8px; }
+  .room { background: var(--panel); color: var(--fg); border: 2px solid var(--border); }
+  .room.active { border-color: var(--blue); background: var(--soft); }
+  .room.alert { border-color: var(--red); }
+  .room .tag { font-size: 11px; margin-left: 6px; color: var(--red); }
+  .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; }
+  @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } main { padding: 14px; } header { padding: 12px 14px; } }
+  .panel { background: var(--panel); border-radius: 8px; padding: 14px 16px; box-shadow: var(--shadow); border: 1px solid var(--line); }
+  .feed-box { position: relative; background: #111827; border-radius: 6px; aspect-ratio: 4 / 3; overflow: hidden; }
+  #feed { width: 100%; height: 100%; object-fit: contain; display: none; }
+  #feed-msg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 14px; text-align: center; padding: 20px; }
+  .big { font-size: 44px; font-weight: 600; line-height: 1.1; margin: 8px 0; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: 11px; font-weight: 600; color: #fff; }
+  .ok { background: var(--green); } .over { background: var(--red); } .offline { background: #6b7280; }
+  .bar { height: 8px; background: var(--line); border-radius: 4px; margin: 10px 0 4px; overflow: hidden; }
+  .fill { height: 100%; background: var(--blue); }
+  .chart-box { position: relative; height: 260px; }
+  .scroll { overflow-x: auto; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid #e5e7eb; }
-  th { color: #6b7280; font-weight: 500; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 500; }
+  select, input { padding: 6px 8px; font-size: 13px; background: var(--panel); color: var(--fg); border: 1px solid var(--border); border-radius: 5px; }
+  .fld { margin: 0 0 12px; }
+  .fld label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .fld input { width: 100%; max-width: 500px; box-sizing: border-box; }
+  .pw { display: flex; gap: 8px; align-items: center; max-width: 500px; }
+  .pw input { flex: 1; }
+  #log { white-space: pre-wrap; font-size: 12px; background: #fef2f2; color: #7f1d1d; border-radius: 6px; padding: 8px 10px; margin-top: 12px; display: none; }
 </style>
 </head>
 <body>
 <header>
-  <h1>Smart Campus Monitoring</h1>
-  <span id="status">Loading...</span>
+  <h1>CrowdSense<small>Real-Time Occupancy Monitoring and Overcrowding Alerts</small></h1>
+  <div class="ctl">
+    <span id="pill" class="pill"><span class="dot"></span><span id="pill-text">...</span></span>
+    <button id="proj-btn" class="start" disabled>...</button>
+  </div>
 </header>
+
 <main>
-  <h2>Live occupancy</h2>
-  <div id="cameras" class="cards"></div>
+  <pre id="log"></pre>
+
+  <h2>Rooms</h2>
+  <div id="rooms" class="rooms"></div>
+
+  <h2 id="room-title">Room</h2>
+  <div class="grid">
+    <div class="panel">
+      <div class="feed-box">
+        <img id="feed" alt="Live view">
+        <div id="feed-msg">Select a room</div>
+      </div>
+    </div>
+    <div class="panel">
+      <span id="r-badge" class="badge offline">NO DATA</span>
+      <div id="r-count" class="big">-</div>
+      <div class="muted">people now</div>
+      <div id="r-occ-wrap" style="display:none">
+        <div class="bar"><div id="r-fill" class="fill"></div></div>
+        <div id="r-occ" class="muted"></div>
+      </div>
+      <div id="r-age" class="muted" style="margin-top:10px"></div>
+    </div>
+  </div>
 
   <h2>History</h2>
   <div class="panel">
-    <div class="controls">
-      <select id="camera-select"></select>
-      <select id="hours-select">
-        <option value="1">Last hour</option>
-        <option value="6" selected>Last 6 hours</option>
-        <option value="24">Last 24 hours</option>
-        <option value="168">Last 7 days</option>
-      </select>
-    </div>
+    <select id="hours">
+      <option value="1">Last hour</option>
+      <option value="6" selected>Last 6 hours</option>
+      <option value="24">Last 24 hours</option>
+      <option value="168">Last 7 days</option>
+    </select>
     <div class="chart-box"><canvas id="chart"></canvas></div>
     <p id="chart-note" class="muted"></p>
   </div>
 
-  <h2>Recent alerts</h2>
-  <div class="panel">
+  <h2>Recent alerts for this room</h2>
+  <div class="panel scroll">
     <table>
-      <thead><tr><th>Time</th><th>Camera</th><th>People</th><th>Density (people/MP)</th></tr></thead>
+      <thead><tr><th>Time</th><th>People</th><th>Density (people/MP)</th></tr></thead>
       <tbody id="alerts"></tbody>
     </table>
+  </div>
+
+  <h2>Email alert settings</h2>
+  <div class="panel">
+    <div class="fld">
+      <label for="sender">Sender email ID</label>
+      <input id="sender" type="email" autocomplete="off" placeholder="crowdsense.alerts@gmail.com">
+    </div>
+    <div class="fld">
+      <label for="apppw">App password</label>
+      <div class="pw">
+        <input id="apppw" type="password" autocomplete="new-password" placeholder="App password">
+        <button id="pw-toggle" type="button" class="ghost">Show</button>
+      </div>
+    </div>
+    <div class="fld">
+      <label for="emails">Recipient emails</label>
+      <input id="emails" placeholder="a@x.com, b@y.com">
+    </div>
+    <p>
+      <button id="emails-save" class="plain">Save settings</button>
+      <span id="emails-msg" class="muted"></span>
+    </p>
   </div>
 </main>
 
 <script>
-const REFRESH_MS = 5000;
-let chart = null;
+const $ = id => document.getElementById(id);
+let rooms = [], selected = null, running = false, chart = null, frameBusy = false;
 
 function el(tag, className, text) {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
+  const n = document.createElement(tag);
+  if (className) n.className = className;
+  if (text !== undefined) n.textContent = text;
+  return n;
 }
 
-async function getJSON(url) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(url + " returned " + res.status);
-  return res.json();
+async function api(url, options) {
+  const res = await fetch(url, options);
+  let body = {};
+  try { body = await res.json(); } catch (e) {}
+  if (!res.ok) throw new Error(body.error || body.message || ("HTTP " + res.status));
+  return body;
+}
+const post = (url, data) => api(url, {method: "POST",
+  headers: {"Content-Type": "application/json"}, body: JSON.stringify(data || {})});
+
+/* ---------- master control ---------- */
+function renderProject(p) {
+  running = p.running;
+  $("pill").className = "pill " + (p.running ? "on" : (p.crashed ? "crash" : "off"));
+  $("pill-text").textContent = p.running ? "RUNNING" : (p.crashed ? "CRASHED (exit " + p.exit_code + ")" : "STOPPED");
+  const btn = $("proj-btn");
+  btn.textContent = p.running ? "Stop Project" : "Start Project";
+  btn.className = p.running ? "stop" : "start";
+  btn.disabled = false;
+  const log = $("log");
+  log.style.display = p.crashed && p.log_tail ? "block" : "none";
+  log.textContent = p.log_tail || "";
 }
 
-function renderCameras(cameras) {
-  const box = document.getElementById("cameras");
+$("proj-btn").addEventListener("click", async () => {
+  const btn = $("proj-btn");
+  btn.disabled = true;
+  btn.textContent = running ? "Stopping…" : "Starting…";
+  try {
+    await post(running ? "/api/project/stop" : "/api/project/start");
+  } catch (err) {
+    alert(err.message);
+  }
+  await refresh();
+});
+
+/* ---------- rooms ---------- */
+function renderRooms() {
+  const box = $("rooms");
   box.replaceChildren();
-  if (cameras.length === 0) {
-    box.appendChild(el("p", "muted", "No readings yet. Start main.py to begin collecting data."));
+  for (const r of rooms) {
+    const flagged = r.online && r.alert;
+    const b = el("button", "room" + (selected && selected.slug === r.slug ? " active" : "") +
+                 (flagged ? " alert" : ""), r.name);
+    if (flagged) b.appendChild(el("span", "tag", "OVERCROWDED"));
+    b.addEventListener("click", () => selectRoom(r.slug));
+    box.appendChild(b);
+  }
+}
+
+function selectRoom(slug) {
+  selected = rooms.find(r => r.slug === slug) || null;
+  try { localStorage.setItem("room", slug); } catch (e) {}
+  $("feed").style.display = "none";
+  $("feed-msg").style.display = "flex";
+  $("feed-msg").textContent = "Loading…";
+  renderRooms();
+  renderRoom();
+  refreshFrame();
+  renderHistory();
+  renderAlerts();
+}
+
+function renderRoom() {
+  if (!selected) { $("room-title").textContent = "No rooms configured"; return; }
+  const r = rooms.find(x => x.slug === selected.slug) || selected;
+  $("room-title").textContent = r.name;
+  const badge = $("r-badge");
+  if (!running) { badge.textContent = "STOPPED"; badge.className = "badge offline"; }
+  else if (!r.has_data || !r.online) { badge.textContent = "OFFLINE"; badge.className = "badge offline"; }
+  else if (r.alert) { badge.textContent = "OVERCROWDED"; badge.className = "badge over"; }
+  else { badge.textContent = "NORMAL"; badge.className = "badge ok"; }
+  $("r-count").textContent = r.has_data ? String(r.count) : "-";
+  const hasOcc = r.has_data && r.occupancy_pct !== null && r.occupancy_pct !== undefined;
+  $("r-occ-wrap").style.display = hasOcc ? "block" : "none";
+  if (hasOcc) {
+    $("r-fill").style.width = r.occupancy_pct + "%";
+    $("r-occ").textContent = "Occupancy " + r.occupancy_pct.toFixed(0) + "%";
+  }
+  $("r-age").textContent = r.has_data ? "Updated " + r.age_seconds + "s ago" : "No readings yet";
+}
+
+/* ---------- live frame ---------- */
+function refreshFrame() {
+  if (!selected || frameBusy) return;
+  frameBusy = true;
+  const slug = selected.slug;
+  const probe = new Image();
+  probe.onload = () => {
+    if (selected && selected.slug === slug) {
+      $("feed").src = probe.src;
+      $("feed").style.display = "block";
+      $("feed-msg").style.display = "none";
+    }
+    frameBusy = false;
+  };
+  probe.onerror = () => {
+    $("feed").style.display = "none";
+    $("feed-msg").style.display = "flex";
+    $("feed-msg").textContent = running
+      ? "Waiting for this room’s camera…"
+      : "Project is stopped. Click Start Project.";
+    frameBusy = false;
+  };
+  probe.src = "/api/frame/" + encodeURIComponent(slug) + "?t=" + Date.now();
+}
+
+/* ---------- history + alerts ---------- */
+async function renderHistory() {
+  if (!selected) return;
+  const note = $("chart-note");
+  if (typeof Chart === "undefined") {
+    note.textContent = "Chart library could not load (needs internet).";
     return;
   }
-  for (const c of cameras) {
-    const card = el("div", "card");
-    card.appendChild(el("h3", "", c.camera_name));
-    const label = !c.online ? "OFFLINE" : (c.alert ? "OVERCROWDED" : "NORMAL");
-    const cls = !c.online ? "offline" : (c.alert ? "over" : "ok");
-    card.appendChild(el("span", "badge " + cls, label));
-    card.appendChild(el("div", "big", String(c.count)));
-    card.appendChild(el("div", "muted", "people now (average " + c.avg_count.toFixed(1) + ")"));
-    if (c.occupancy_pct !== null) {
-      const bar = el("div", "bar");
-      const fill = el("div", "fill");
-      fill.style.width = c.occupancy_pct + "%";
-      bar.appendChild(fill);
-      card.appendChild(bar);
-      card.appendChild(el("div", "muted", "Occupancy " + c.occupancy_pct.toFixed(0) + "%"));
-    }
-    card.appendChild(el("div", "muted small", "Updated " + c.age_seconds + "s ago"));
-    box.appendChild(card);
-  }
+  const rows = await api("/api/history?room=" + encodeURIComponent(selected.slug) + "&hours=" + $("hours").value);
+  note.textContent = rows.length === 0 ? "No readings in this time range." : "";
+  const data = {
+    labels: rows.map(r => new Date(r.time * 1000).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"})),
+    datasets: [
+      {label: "Average people", data: rows.map(r => r.avg_count), borderColor: "#2563eb", tension: 0.2},
+      {label: "Peak people", data: rows.map(r => r.max_count), borderColor: "#dc2626", tension: 0.2},
+    ],
+  };
+  if (chart) { chart.data = data; chart.update(); }
+  else chart = new Chart($("chart"), {type: "line", data: data,
+    options: {animation: false, responsive: true, maintainAspectRatio: false}});
 }
 
-function fillCameraSelect(cameras) {
-  const select = document.getElementById("camera-select");
-  const names = cameras.map(c => c.camera_name);
-  const current = select.value;
-  const existing = Array.from(select.options).map(o => o.value);
-  if (JSON.stringify(names) === JSON.stringify(existing)) return;
-  select.replaceChildren();
-  for (const name of names) {
-    const option = el("option", "", name);
-    option.value = name;
-    select.appendChild(option);
-  }
-  if (names.includes(current)) select.value = current;
-}
-
-function renderAlerts(alerts) {
-  const body = document.getElementById("alerts");
+async function renderAlerts() {
+  if (!selected) return;
+  const alerts = await api("/api/alerts?limit=10&room=" + encodeURIComponent(selected.slug));
+  const body = $("alerts");
   body.replaceChildren();
   if (alerts.length === 0) {
-    const row = el("tr");
-    const cell = el("td", "muted", "No alerts yet.");
-    cell.colSpan = 4;
-    row.appendChild(cell);
-    body.appendChild(row);
+    const row = el("tr"); const cell = el("td", "muted", "No alerts yet.");
+    cell.colSpan = 3; row.appendChild(cell); body.appendChild(row);
     return;
   }
   for (const a of alerts) {
     const row = el("tr");
     row.appendChild(el("td", "", new Date(a.timestamp * 1000).toLocaleString()));
-    row.appendChild(el("td", "", a.camera_name));
     row.appendChild(el("td", "", String(a.count)));
     row.appendChild(el("td", "", a.density.toFixed(1)));
     body.appendChild(row);
   }
 }
 
-async function renderHistory() {
-  const camera = document.getElementById("camera-select").value;
-  const hours = document.getElementById("hours-select").value;
-  const note = document.getElementById("chart-note");
-  if (!camera) return;
-  if (typeof Chart === "undefined") {
-    note.textContent = "Chart library could not be loaded (the page needs internet access for it).";
-    return;
-  }
-  const rows = await getJSON("/api/history?camera=" + encodeURIComponent(camera) + "&hours=" + hours);
-  note.textContent = rows.length === 0 ? "No readings in this time range." : "";
-  const labels = rows.map(r => new Date(r.time * 1000).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"}));
-  const data = {
-    labels: labels,
-    datasets: [
-      {label: "Average people", data: rows.map(r => r.avg_count), borderColor: "#2563eb", tension: 0.2},
-      {label: "Peak people", data: rows.map(r => r.max_count), borderColor: "#dc2626", tension: 0.2},
-    ],
-  };
-  if (chart) {
-    chart.data = data;
-    chart.update();
-  } else {
-    chart = new Chart(document.getElementById("chart"), {
-      type: "line", data: data,
-      options: {animation: false, responsive: true, maintainAspectRatio: false},
-    });
-  }
+/* ---------- email alert settings ---------- */
+function emailMsg(text) { $("emails-msg").textContent = text; }
+
+async function loadEmails() {
+  const r = await api("/api/emails");
+  $("sender").value = r.sender_email;
+  $("emails").value = r.recipients;
+  $("apppw").value = "";   // the server never sends the password back
+  $("apppw").placeholder = r.password_set ? "••••••••••••••••" : "App password";
 }
 
+$("pw-toggle").addEventListener("click", () => {
+  const field = $("apppw"), show = field.type === "password";
+  field.type = show ? "text" : "password";
+  $("pw-toggle").textContent = show ? "Hide" : "Show";
+});
+
+$("emails-save").addEventListener("click", async () => {
+  try {
+    await post("/api/emails", {
+      sender_email: $("sender").value,
+      app_password: $("apppw").value,
+      recipients: $("emails").value,
+    });
+    await loadEmails();
+    emailMsg("Saved");
+  } catch (err) {
+    emailMsg(err.message);
+  }
+});
+
+/* ---------- refresh loop ---------- */
 async function refresh() {
   try {
-    const results = await Promise.all([getJSON("/api/cameras"), getJSON("/api/alerts?limit=15")]);
-    renderCameras(results[0]);
-    fillCameraSelect(results[0]);
-    renderAlerts(results[1]);
-    await renderHistory();
-    document.getElementById("status").textContent = "Last refresh " + new Date().toLocaleTimeString();
+    const [project, roomList] = await Promise.all([api("/api/project"), api("/api/rooms")]);
+    renderProject(project);
+    rooms = roomList;
+    if (!selected && rooms.length) {
+      let saved = null;
+      try { saved = localStorage.getItem("room"); } catch (e) {}
+      selectRoom((rooms.find(r => r.slug === saved) || rooms[0]).slug);
+    }
+    renderRooms();
+    renderRoom();
   } catch (err) {
-    document.getElementById("status").textContent = "Cannot reach the server: " + err.message;
+    $("pill-text").textContent = "Cannot reach dashboard server";
   }
 }
 
-document.getElementById("camera-select").addEventListener("change", renderHistory);
-document.getElementById("hours-select").addEventListener("change", renderHistory);
+$("hours").addEventListener("change", renderHistory);
+loadEmails().catch(err => emailMsg(err.message));
 refresh();
-setInterval(refresh, REFRESH_MS);
+setInterval(refresh, 3000);
+setInterval(refreshFrame, 1000);
+setInterval(() => { renderHistory(); renderAlerts(); }, 10000);
 </script>
 </body>
 </html>
