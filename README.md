@@ -1,4 +1,3 @@
-﻿# Smart-Campus-Monitoring
 # Smart Campus Monitoring
 
 A Python-based overcrowding detection system for campus camera feeds. It counts people in video using a YOLO model (optionally with SAHI slicing inference), tracks crowd density and occupancy, stores results in a local SQLite database, and sends alerts through email and MQTT. It works on live camera streams and on recorded video files.
