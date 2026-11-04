@@ -52,8 +52,6 @@ Crowded areas on a campus (entrances, corridors, canteens, event spaces) are har
 
 ## Key Features
 
-Features below are confirmed from `main.py`, `run_batch.py`, `test.py` and `requirements.txt`.
-
 - **Multi-camera live monitoring** with one processing thread per camera (`CameraProcessor`).
 - **Two detector options**: standard YOLO (`OvercrowdingDetector`) or SAHI sliced inference (`SAHIOvercrowdingDetector`) enabled per camera via `use_sahi`.
 - **Per-camera settings**: `count_threshold`, `density_threshold`, `roi`, `max_capacity`, `source`, `output_path`.
