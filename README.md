@@ -263,4 +263,4 @@ The following could not be verified from the files inspected (`main.py`, `run_ba
 
 ## Contributors
 
-Repository owner: [Vshnavi K B](https://github.com/Yshnavii), [Muhammed Asharaf N](https://github.com/Muhammedasharafn), [Amna Yasmine](https://github.com/amnayasmine).
+Repository owner: [Vyshnavi K B](https://github.com/Yshnavii), [Muhammed Asharaf N](https://github.com/Muhammedasharafn), [Amna Yasmine](https://github.com/amnayasmine).
