@@ -17,3 +17,5 @@ alert_settings.json
 alert_settings.json.tmp
 snapshots/
 monitor.log
+# Incomplete downloads
+*.part

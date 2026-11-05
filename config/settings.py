@@ -14,18 +14,32 @@ class CameraSpec:
     roi: list = None
     use_sahi: bool = False
     output_path: str = None  # None = don't save an annotated video for this camera
+    restricted_access: bool = False  # alert immediately when >= 1 person is detected
 
 
 # One entry per room. Each name must be unique: it is the room button in the dashboard.
 # The sources below all play download.mp4 as a stand-in; replace each with that room's
 # own camera. A webcam ("0") can only be used by one room at a time.
 DEFAULT_CAMERAS = [
-    CameraSpec(name="Classroom 1", source="0",
-               max_capacity=30, count_threshold=15),            # laptop webcam
-    CameraSpec(name="Library", source="http://10.218.239.114:8080/video",
-               max_capacity=60, count_threshold=15),            # phone camera
-    CameraSpec(name="Lab A", source="tcp://192.168.1.60:8888",
-               max_capacity=20, count_threshold=15),            # Raspberry Pi
+    CameraSpec(
+        name="Raspberry Pi Camera",
+        source="http://campus-pi.local:8000/stream.mjpg",  # replace with the actual Pi stream URL
+        max_capacity=30,
+        count_threshold=15,
+    ),
+    CameraSpec(
+        name="Phone IP Camera 1",
+        source="http://10.218.239.114:8080/video",  # restricted-access camera
+        max_capacity=60,
+        count_threshold=15,
+        restricted_access=True,
+    ),
+    CameraSpec(
+        name="Phone IP Camera 2",
+        source="http://10.218.239.187:8080/video",  # replace PHONE_2_IP with its current IP
+        max_capacity=40,
+        count_threshold=15,
+    ),
 ]
 
 NOTIFICATION = {

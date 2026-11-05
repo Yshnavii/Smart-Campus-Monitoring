@@ -16,7 +16,7 @@ class VideoProcessor:
 
     def __init__(self, camera_name, source, detector, output_path=None,
                  frame_stride=5, alert_callback=None, result_callback=None,
-                 is_live=True):
+                 is_live=True, restricted_access=False):
         self.camera_name = camera_name
         self.source = source
         self.detector = detector
@@ -25,6 +25,7 @@ class VideoProcessor:
         self.alert_callback = alert_callback      # fires on every detection while overcrowded (AlertHandler throttles it)
         self.result_callback = result_callback    # fires on every processed frame
         self.is_live = is_live                    # True: reconnect on drop (camera). False: stop at EOF (file).
+        self.restricted_access = restricted_access
         self._running = False
 
         # The dashboard sets SNAPSHOT_DIR when it starts main.py. Without it (plain
@@ -113,7 +114,13 @@ class VideoProcessor:
                 # in-between frames reuse the last known boxes/alert state.
                 if frame_idx % self.frame_stride == 0:
                     boxes = self.detector.detect_people(frame)
-                    alert, avg_count, density = self.detector.is_overcrowded(len(boxes), frame.shape)
+                    if self.restricted_access:
+                        # Restricted-access mode: a single detected person is enough.
+                        alert = len(boxes) >= 1
+                        avg_count = float(len(boxes))
+                        density = self.detector.compute_density(len(boxes), frame.shape)
+                    else:
+                        alert, avg_count, density = self.detector.is_overcrowded(len(boxes), frame.shape)
                     occupancy = self.detector.calculate_occupancy(avg_count)
 
                     if self.result_callback:
@@ -128,7 +135,11 @@ class VideoProcessor:
                     # Called on every detection while overcrowded. AlertHandler's cooldown
                     # decides how often an email actually goes out.
                     if alert and self.alert_callback:
-                        self.alert_callback(self.camera_name, frame_idx, len(boxes), density)
+                        if self.restricted_access:
+                            self.alert_callback(self.camera_name, frame_idx, len(boxes), density,
+                                                alert_type="unauthorised_access")
+                        else:
+                            self.alert_callback(self.camera_name, frame_idx, len(boxes), density)
 
                 annotated = draw_overlay(frame, boxes, alert, avg_count, density, occupancy)
                 self._save_snapshot(annotated)

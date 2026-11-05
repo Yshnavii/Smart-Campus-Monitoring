@@ -50,9 +50,14 @@ class Database:
                     timestamp REAL NOT NULL,
                     frame_idx INTEGER NOT NULL,
                     count INTEGER NOT NULL,
-                    density REAL NOT NULL
+                    density REAL NOT NULL,
+                    alert_type TEXT NOT NULL DEFAULT 'overcrowding'
                 )
             """)
+            # Upgrade databases created before alert_type was introduced.
+            columns = {row[1] for row in conn.execute("PRAGMA table_info(alerts)").fetchall()}
+            if "alert_type" not in columns:
+                conn.execute("ALTER TABLE alerts ADD COLUMN alert_type TEXT NOT NULL DEFAULT 'overcrowding'")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_det_cam_ts ON detections(camera_name, timestamp)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_alert_cam_ts ON alerts(camera_name, timestamp)")
 
@@ -65,12 +70,12 @@ class Database:
                  result["density"], result["occupancy_pct"], int(result["alert"])),
             )
 
-    def insert_alert(self, camera_name, frame_idx, count, density):
+    def insert_alert(self, camera_name, frame_idx, count, density, alert_type="overcrowding"):
         with self._connect() as conn:
             conn.execute(
-                "INSERT INTO alerts (camera_name, timestamp, frame_idx, count, density) "
-                "VALUES (?, ?, ?, ?, ?)",
-                (camera_name, time.time(), frame_idx, count, density),
+                "INSERT INTO alerts (camera_name, timestamp, frame_idx, count, density, alert_type) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (camera_name, time.time(), frame_idx, count, density, alert_type),
             )
 
     def recent_detections(self, camera_name, limit=100):
