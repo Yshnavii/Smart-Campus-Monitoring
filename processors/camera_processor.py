@@ -15,7 +15,8 @@ class CameraProcessor:
         self._threads = {}      # camera_name -> Thread
 
     def add_camera(self, camera_name, source, detector, output_path=None,
-                    frame_stride=5, alert_callback=None, result_callback=None):
+                    frame_stride=5, alert_callback=None, result_callback=None,
+                    restricted_access=False):
         """Register a camera. Call before start_camera()/start_all()."""
         if camera_name in self._processors:
             raise ValueError(f"Camera '{camera_name}' is already registered")
@@ -28,6 +29,7 @@ class CameraProcessor:
             alert_callback=alert_callback,
             result_callback=result_callback,
             is_live=True,
+            restricted_access=restricted_access,
         )
 
     def start_camera(self, camera_name, display=False):

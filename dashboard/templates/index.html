@@ -3,354 +3,70 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CrowdSense</title>
+<title>CampusWatch | Smart Campus Monitoring</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
-  :root { --bg:#f4f5f7; --fg:#1d2433; --panel:#fff; --muted:#6b7280; --line:#e5e7eb; --hdr:#1d2433; --blue:#2563eb; --soft:#eff6ff; --green:#16a34a; --red:#dc2626; --border:#d1d5db; --shadow:0 1px 3px rgba(0,0,0,0.08); }
-  @media (prefers-color-scheme: dark) {
-    :root { color-scheme: dark; --bg:#0f141c; --fg:#e5e7eb; --panel:#1a2230; --muted:#9ca3af; --line:#2d3748; --hdr:#161d2a; --soft:#1e2f52; --border:#374151; --shadow:none; }
-  }
-  body { font-family: system-ui, sans-serif; margin: 0; background: var(--bg); color: var(--fg); }
-  header { background: var(--hdr); color: #fff; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
-  header h1 { font-size: 18px; margin: 0; }
-  header h1 small { font-weight: 400; opacity: 0.7; font-size: 12px; margin-left: 8px; }
-  .ctl { display: flex; align-items: center; gap: 14px; }
-  .pill { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; }
-  .dot { width: 11px; height: 11px; border-radius: 50%; background: #6b7280; }
-  .pill.on .dot { background: #22c55e; box-shadow: 0 0 6px #22c55e; }
-  .pill.crash .dot { background: #ef4444; }
-  button { border: 0; border-radius: 6px; padding: 8px 16px; font-size: 14px; font-weight: 600; cursor: pointer; color: #fff; font-family: inherit; }
-  button:disabled { opacity: 0.5; cursor: wait; }
-  button.start { background: var(--green); }
-  button.stop { background: var(--red); }
-  button.plain { background: var(--blue); }
-  button.ghost { background: transparent; color: var(--blue); border: 1px solid var(--border); padding: 6px 12px; font-size: 13px; }
-  main { padding: 18px 24px; max-width: 1100px; margin: 0 auto; }
-  h2 { font-size: 15px; margin: 22px 0 10px; }
-  .rooms { display: flex; flex-wrap: wrap; gap: 8px; }
-  .room { background: var(--panel); color: var(--fg); border: 2px solid var(--border); }
-  .room.active { border-color: var(--blue); background: var(--soft); }
-  .room.alert { border-color: var(--red); }
-  .room .tag { font-size: 11px; margin-left: 6px; color: var(--red); }
-  .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; }
-  @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } main { padding: 14px; } header { padding: 12px 14px; } }
-  .panel { background: var(--panel); border-radius: 8px; padding: 14px 16px; box-shadow: var(--shadow); border: 1px solid var(--line); }
-  .feed-box { position: relative; background: #111827; border-radius: 6px; aspect-ratio: 4 / 3; overflow: hidden; }
-  #feed { width: 100%; height: 100%; object-fit: contain; display: none; }
-  #feed-msg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 14px; text-align: center; padding: 20px; }
-  .big { font-size: 44px; font-weight: 600; line-height: 1.1; margin: 8px 0; }
-  .muted { color: var(--muted); font-size: 13px; }
-  .badge { display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: 11px; font-weight: 600; color: #fff; }
-  .ok { background: var(--green); } .over { background: var(--red); } .offline { background: #6b7280; }
-  .bar { height: 8px; background: var(--line); border-radius: 4px; margin: 10px 0 4px; overflow: hidden; }
-  .fill { height: 100%; background: var(--blue); }
-  .chart-box { position: relative; height: 260px; }
-  .scroll { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); }
-  th { color: var(--muted); font-weight: 500; }
-  select, input { padding: 6px 8px; font-size: 13px; background: var(--panel); color: var(--fg); border: 1px solid var(--border); border-radius: 5px; }
-  .fld { margin: 0 0 12px; }
-  .fld label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; }
-  .fld input { width: 100%; max-width: 500px; box-sizing: border-box; }
-  .pw { display: flex; gap: 8px; align-items: center; max-width: 500px; }
-  .pw input { flex: 1; }
-  #log { white-space: pre-wrap; font-size: 12px; background: #fef2f2; color: #7f1d1d; border-radius: 6px; padding: 8px 10px; margin-top: 12px; display: none; }
+:root{color-scheme:dark;--bg:#090f1b;--surface:#111b2b;--surface2:#172438;--line:#26364d;--text:#e8eef8;--muted:#91a2b9;--cyan:#38bdf8;--green:#34d399;--red:#fb7185;--amber:#fbbf24;--shadow:0 18px 50px #0005}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 12% 0%,#16304b 0,transparent 34%),var(--bg);color:var(--text);font:14px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+header{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:17px clamp(16px,3vw,38px);background:#0b1422eF;border-bottom:1px solid var(--line);backdrop-filter:blur(16px)}
+.brand{display:flex;align-items:center;gap:13px}.brand-mark{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;background:linear-gradient(135deg,#0ea5e9,#2563eb);font-size:21px;box-shadow:0 8px 24px #0284c755}.brand h1{font-size:18px;letter-spacing:.2px;margin:0}.brand p{margin:2px 0 0;color:var(--muted);font-size:11px;letter-spacing:1.5px;text-transform:uppercase}
+.header-actions{display:flex;align-items:center;gap:13px;flex-wrap:wrap}.status-pill{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px;font-weight:700;letter-spacing:.8px}.status-dot{width:8px;height:8px;border-radius:50%;background:#64748b}.status-pill.on .status-dot{background:var(--green);box-shadow:0 0 12px var(--green)}.status-pill.crash .status-dot{background:var(--red)}
+button{border:0;border-radius:10px;padding:10px 16px;font:inherit;font-weight:700;cursor:pointer;transition:.18s ease}button:disabled{opacity:.55;cursor:wait}.primary{color:#04111e;background:linear-gradient(135deg,#67e8f9,#38bdf8);box-shadow:0 8px 22px #0ea5e933}.primary:hover{transform:translateY(-1px);filter:brightness(1.06)}.danger{background:#4c1d2a;color:#fecdd3;border:1px solid #9f344b}.subtle{background:var(--surface2);color:var(--text);border:1px solid var(--line);padding:7px 11px;font-size:12px}
+main{max-width:1600px;margin:auto;padding:26px clamp(14px,3vw,38px) 48px}.intro{display:flex;justify-content:space-between;align-items:end;gap:16px;margin-bottom:20px}.eyebrow{color:var(--cyan);font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase}.intro h2{font-size:25px;margin:4px 0 3px}.intro p{margin:0;color:var(--muted)}
+.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin:20px 0 28px}.kpi{padding:16px 18px;border:1px solid var(--line);border-radius:15px;background:linear-gradient(145deg,#15243a,#101a29);box-shadow:var(--shadow)}.kpi-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px}.kpi-value{font-size:25px;font-weight:800;margin-top:4px}.kpi-foot{font-size:11px;color:var(--muted)}
+.section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 13px}.section-head h3{margin:0;font-size:15px;letter-spacing:.2px}.section-head p{margin:3px 0 0;color:var(--muted);font-size:12px}.live-label{display:inline-flex;align-items:center;gap:7px;color:#fda4af;font-size:11px;font-weight:800;letter-spacing:1.1px}.live-label:before{content:"";width:7px;height:7px;border-radius:50%;background:var(--red);box-shadow:0 0 10px var(--red)}
+.camera-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}.camera-card{min-width:0;overflow:hidden;border:1px solid var(--line);border-radius:16px;background:linear-gradient(160deg,#152338,#0f1928);box-shadow:var(--shadow);transition:border-color .2s,transform .2s}.camera-card:hover{border-color:#3b6687;transform:translateY(-2px)}.camera-card.alert{border-color:#b83b58;box-shadow:0 0 0 1px #b83b5840,var(--shadow)}.camera-top{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:13px 14px}.cam-name{font-weight:800;font-size:13px}.cam-role{font-size:10px;color:var(--muted);margin-top:2px}.state{padding:4px 8px;border-radius:20px;font-size:9px;font-weight:900;letter-spacing:.8px;background:#253349;color:#a9b8ca;white-space:nowrap}.state.online{background:#073d35;color:#6ee7b7}.state.alert{background:#501d2b;color:#fda4af}.state.offline{background:#263449;color:#a5b4c7}
+.feed{position:relative;aspect-ratio:16/10;background:repeating-linear-gradient(135deg,#0c1420,#0c1420 12px,#101b2a 12px,#101b2a 24px);overflow:hidden;cursor:zoom-in}.feed img{display:block;width:100%;height:100%;object-fit:contain}.feed-placeholder{position:absolute;inset:0;display:grid;place-content:center;text-align:center;color:#8293aa;gap:8px}.feed-placeholder strong{font-size:12px;color:#b7c5d8}.feed-placeholder span{font-size:11px}.feed-corner{position:absolute;left:10px;top:10px;background:#030712b8;padding:4px 7px;border-radius:5px;color:#dbeafe;font-size:9px;letter-spacing:1px}.expand-hint{position:absolute;right:10px;bottom:10px;background:#030712b8;padding:4px 7px;border-radius:5px;color:#dbeafe;font-size:10px}.camera-meta{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-top:1px solid var(--line)}.count-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}.count-value{font-size:23px;font-weight:800;line-height:1.15}.count-unit{font-size:10px;color:var(--muted)}.meta-right{text-align:right;font-size:11px;color:var(--muted)}.meta-right strong{display:block;color:var(--text);font-size:12px}.camera-card.expanded{position:fixed;z-index:20;inset:3vh 3vw;background:#08111e;border:1px solid #45627f;box-shadow:0 0 0 100vmax #020617e8;transform:none;display:flex;flex-direction:column}.camera-card.expanded .feed{flex:1;min-height:0;aspect-ratio:auto}.camera-card.expanded .feed img{object-fit:contain}.camera-card.expanded .camera-top,.camera-card.expanded .camera-meta{padding:16px 20px}.camera-card.expanded .cam-name{font-size:16px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:15px;padding:17px;box-shadow:var(--shadow);min-width:0}.lower-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(300px,.8fr);gap:15px;margin-top:28px}.chart-box{height:260px;margin-top:12px}.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}select,input{background:#0c1726;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit;font-size:12px}select:focus,input:focus{outline:1px solid var(--cyan)}.scroll{overflow:auto}table{width:100%;border-collapse:collapse;font-size:12px}th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);white-space:nowrap}th{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.8px}.alert-type{font-weight:800;color:#fda4af}.normal-type{font-weight:800;color:#fcd34d}.settings{margin-top:18px}.settings-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.field label{display:block;color:var(--muted);font-size:11px;margin:0 0 5px}.field input{width:100%}.password-row{display:flex;gap:7px}.password-row input{min-width:0;flex:1}.settings-actions{display:flex;align-items:center;gap:12px;margin-top:13px}.muted{color:var(--muted);font-size:11px}#log{white-space:pre-wrap;background:#351c2a;border:1px solid #8d3048;color:#fecdd3;padding:12px;border-radius:10px;display:none;margin:0 0 18px;font-size:11px;max-height:180px;overflow:auto}.empty{color:var(--muted);text-align:center;padding:20px}
+@media(max-width:1000px){.camera-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.lower-grid{grid-template-columns:1fr}.settings-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:650px){header{align-items:flex-start;flex-direction:column}.header-actions{width:100%;justify-content:space-between}.camera-grid{grid-template-columns:1fr}.kpis{gap:8px}.kpi{padding:12px}.kpi-value{font-size:21px}.intro{align-items:flex-start;flex-direction:column}.settings-grid{grid-template-columns:1fr}.camera-card.expanded{inset:1vh 1vw}}
 </style>
 </head>
 <body>
 <header>
-  <h1>CrowdSense<small>Real-Time Occupancy Monitoring and Overcrowding Alerts</small></h1>
-  <div class="ctl">
-    <span id="pill" class="pill"><span class="dot"></span><span id="pill-text">...</span></span>
-    <button id="proj-btn" class="start" disabled>...</button>
-  </div>
+  <div class="brand"><div class="brand-mark">⌁</div><div><h1>CampusWatch</h1><p>Intelligent campus surveillance</p></div></div>
+  <div class="header-actions"><div id="status" class="status-pill"><span class="status-dot"></span><span id="status-text">CONNECTING</span></div><button id="monitor-btn" class="primary" disabled>Start monitoring</button></div>
 </header>
-
 <main>
   <pre id="log"></pre>
-
-  <h2>Rooms</h2>
-  <div id="rooms" class="rooms"></div>
-
-  <h2 id="room-title">Room</h2>
-  <div class="grid">
-    <div class="panel">
-      <div class="feed-box">
-        <img id="feed" alt="Live view">
-        <div id="feed-msg">Select a room</div>
-      </div>
-    </div>
-    <div class="panel">
-      <span id="r-badge" class="badge offline">NO DATA</span>
-      <div id="r-count" class="big">-</div>
-      <div class="muted">people now</div>
-      <div id="r-occ-wrap" style="display:none">
-        <div class="bar"><div id="r-fill" class="fill"></div></div>
-        <div id="r-occ" class="muted"></div>
-      </div>
-      <div id="r-age" class="muted" style="margin-top:10px"></div>
-    </div>
+  <div class="intro"><div><div class="eyebrow">Security operations centre</div><h2>Live monitoring dashboard</h2><p>All camera feeds, occupancy signals and security alerts in one view.</p></div><div class="live-label">LIVE CAMERA WALL</div></div>
+  <div class="kpis">
+    <div class="kpi"><div class="kpi-label">Connected cameras</div><div id="kpi-online" class="kpi-value">0 / 3</div><div class="kpi-foot">Active camera streams</div></div>
+    <div class="kpi"><div class="kpi-label">People detected</div><div id="kpi-people" class="kpi-value">—</div><div class="kpi-foot">Latest available readings</div></div>
+    <div class="kpi"><div class="kpi-label">Active alerts</div><div id="kpi-alerts" class="kpi-value">0</div><div class="kpi-foot">Current alerting cameras</div></div>
   </div>
-
-  <h2>History</h2>
-  <div class="panel">
-    <select id="hours">
-      <option value="1">Last hour</option>
-      <option value="6" selected>Last 6 hours</option>
-      <option value="24">Last 24 hours</option>
-      <option value="168">Last 7 days</option>
-    </select>
-    <div class="chart-box"><canvas id="chart"></canvas></div>
-    <p id="chart-note" class="muted"></p>
+  <div class="section-head"><div><h3>Camera overview</h3><p>Click any camera image to expand it. Press Escape to return to the camera wall.</p></div><span class="muted">3 CAMERA CHANNELS</span></div>
+  <section id="camera-grid" class="camera-grid"></section>
+  <div class="lower-grid">
+    <section class="panel"><div class="section-head"><div><h3>Occupancy history</h3><p>Detection trend for the selected camera.</p></div><div class="toolbar"><select id="history-camera"></select><select id="hours"><option value="1">1 hour</option><option value="6" selected>6 hours</option><option value="24">24 hours</option><option value="168">7 days</option></select></div></div><div class="chart-box"><canvas id="chart"></canvas></div><p id="chart-note" class="muted"></p></section>
+    <section class="panel"><div class="section-head"><div><h3>Recent security events</h3><p>Overcrowding and restricted-area detections.</p></div></div><div class="scroll"><table><thead><tr><th>Time</th><th>Camera</th><th>Event</th><th>People</th></tr></thead><tbody id="alerts"><tr><td colspan="4" class="empty">No alerts recorded.</td></tr></tbody></table></div></section>
   </div>
-
-  <h2>Recent alerts for this room</h2>
-  <div class="panel scroll">
-    <table>
-      <thead><tr><th>Time</th><th>People</th><th>Density (people/MP)</th></tr></thead>
-      <tbody id="alerts"></tbody>
-    </table>
-  </div>
-
-  <h2>Email alert settings</h2>
-  <div class="panel">
-    <div class="fld">
-      <label for="sender">Sender email ID</label>
-      <input id="sender" type="email" autocomplete="off" placeholder="crowdsense.alerts@gmail.com">
-    </div>
-    <div class="fld">
-      <label for="apppw">App password</label>
-      <div class="pw">
-        <input id="apppw" type="password" autocomplete="new-password" placeholder="App password">
-        <button id="pw-toggle" type="button" class="ghost">Show</button>
-      </div>
-    </div>
-    <div class="fld">
-      <label for="emails">Recipient emails</label>
-      <input id="emails" placeholder="a@x.com, b@y.com">
-    </div>
-    <p>
-      <button id="emails-save" class="plain">Save settings</button>
-      <span id="emails-msg" class="muted"></span>
-    </p>
-  </div>
+  <section class="panel settings"><div class="section-head"><div><h3>Email notification settings</h3><p>Credentials remain on the dashboard server and are not sent back to the browser.</p></div></div><div class="settings-grid">
+    <div class="field"><label for="sender">Sender email</label><input id="sender" type="email" autocomplete="off" placeholder="alerts@example.com"></div>
+    <div class="field"><label for="apppw">Email app password</label><div class="password-row"><input id="apppw" type="password" autocomplete="new-password" placeholder="App password"><button id="pw-toggle" class="subtle" type="button">Show</button></div></div>
+    <div class="field"><label for="emails">Recipient email addresses</label><input id="emails" placeholder="person@example.com, team@example.com"></div>
+  </div><div class="settings-actions"><button id="emails-save" class="subtle">Save email settings</button><span id="emails-msg" class="muted"></span></div></section>
 </main>
-
 <script>
-const $ = id => document.getElementById(id);
-let rooms = [], selected = null, running = false, chart = null, frameBusy = false;
-
-function el(tag, className, text) {
-  const n = document.createElement(tag);
-  if (className) n.className = className;
-  if (text !== undefined) n.textContent = text;
-  return n;
-}
-
-async function api(url, options) {
-  const res = await fetch(url, options);
-  let body = {};
-  try { body = await res.json(); } catch (e) {}
-  if (!res.ok) throw new Error(body.error || body.message || ("HTTP " + res.status));
-  return body;
-}
-const post = (url, data) => api(url, {method: "POST",
-  headers: {"Content-Type": "application/json"}, body: JSON.stringify(data || {})});
-
-/* ---------- master control ---------- */
-function renderProject(p) {
-  running = p.running;
-  $("pill").className = "pill " + (p.running ? "on" : (p.crashed ? "crash" : "off"));
-  $("pill-text").textContent = p.running ? "RUNNING" : (p.crashed ? "CRASHED (exit " + p.exit_code + ")" : "STOPPED");
-  const btn = $("proj-btn");
-  btn.textContent = p.running ? "Stop Project" : "Start Project";
-  btn.className = p.running ? "stop" : "start";
-  btn.disabled = false;
-  const log = $("log");
-  log.style.display = p.crashed && p.log_tail ? "block" : "none";
-  log.textContent = p.log_tail || "";
-}
-
-$("proj-btn").addEventListener("click", async () => {
-  const btn = $("proj-btn");
-  btn.disabled = true;
-  btn.textContent = running ? "Stopping…" : "Starting…";
-  try {
-    await post(running ? "/api/project/stop" : "/api/project/start");
-  } catch (err) {
-    alert(err.message);
-  }
-  await refresh();
-});
-
-/* ---------- rooms ---------- */
-function renderRooms() {
-  const box = $("rooms");
-  box.replaceChildren();
-  for (const r of rooms) {
-    const flagged = r.online && r.alert;
-    const b = el("button", "room" + (selected && selected.slug === r.slug ? " active" : "") +
-                 (flagged ? " alert" : ""), r.name);
-    if (flagged) b.appendChild(el("span", "tag", "OVERCROWDED"));
-    b.addEventListener("click", () => selectRoom(r.slug));
-    box.appendChild(b);
-  }
-}
-
-function selectRoom(slug) {
-  selected = rooms.find(r => r.slug === slug) || null;
-  try { localStorage.setItem("room", slug); } catch (e) {}
-  $("feed").style.display = "none";
-  $("feed-msg").style.display = "flex";
-  $("feed-msg").textContent = "Loading…";
-  renderRooms();
-  renderRoom();
-  refreshFrame();
-  renderHistory();
-  renderAlerts();
-}
-
-function renderRoom() {
-  if (!selected) { $("room-title").textContent = "No rooms configured"; return; }
-  const r = rooms.find(x => x.slug === selected.slug) || selected;
-  $("room-title").textContent = r.name;
-  const badge = $("r-badge");
-  if (!running) { badge.textContent = "STOPPED"; badge.className = "badge offline"; }
-  else if (!r.has_data || !r.online) { badge.textContent = "OFFLINE"; badge.className = "badge offline"; }
-  else if (r.alert) { badge.textContent = "OVERCROWDED"; badge.className = "badge over"; }
-  else { badge.textContent = "NORMAL"; badge.className = "badge ok"; }
-  $("r-count").textContent = r.has_data ? String(r.count) : "-";
-  const hasOcc = r.has_data && r.occupancy_pct !== null && r.occupancy_pct !== undefined;
-  $("r-occ-wrap").style.display = hasOcc ? "block" : "none";
-  if (hasOcc) {
-    $("r-fill").style.width = r.occupancy_pct + "%";
-    $("r-occ").textContent = "Occupancy " + r.occupancy_pct.toFixed(0) + "%";
-  }
-  $("r-age").textContent = r.has_data ? "Updated " + r.age_seconds + "s ago" : "No readings yet";
-}
-
-/* ---------- live frame ---------- */
-function refreshFrame() {
-  if (!selected || frameBusy) return;
-  frameBusy = true;
-  const slug = selected.slug;
-  const probe = new Image();
-  probe.onload = () => {
-    if (selected && selected.slug === slug) {
-      $("feed").src = probe.src;
-      $("feed").style.display = "block";
-      $("feed-msg").style.display = "none";
-    }
-    frameBusy = false;
-  };
-  probe.onerror = () => {
-    $("feed").style.display = "none";
-    $("feed-msg").style.display = "flex";
-    $("feed-msg").textContent = running
-      ? "Waiting for this room’s camera…"
-      : "Project is stopped. Click Start Project.";
-    frameBusy = false;
-  };
-  probe.src = "/api/frame/" + encodeURIComponent(slug) + "?t=" + Date.now();
-}
-
-/* ---------- history + alerts ---------- */
-async function renderHistory() {
-  if (!selected) return;
-  const note = $("chart-note");
-  if (typeof Chart === "undefined") {
-    note.textContent = "Chart library could not load (needs internet).";
-    return;
-  }
-  const rows = await api("/api/history?room=" + encodeURIComponent(selected.slug) + "&hours=" + $("hours").value);
-  note.textContent = rows.length === 0 ? "No readings in this time range." : "";
-  const data = {
-    labels: rows.map(r => new Date(r.time * 1000).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"})),
-    datasets: [
-      {label: "Average people", data: rows.map(r => r.avg_count), borderColor: "#2563eb", tension: 0.2},
-      {label: "Peak people", data: rows.map(r => r.max_count), borderColor: "#dc2626", tension: 0.2},
-    ],
-  };
-  if (chart) { chart.data = data; chart.update(); }
-  else chart = new Chart($("chart"), {type: "line", data: data,
-    options: {animation: false, responsive: true, maintainAspectRatio: false}});
-}
-
-async function renderAlerts() {
-  if (!selected) return;
-  const alerts = await api("/api/alerts?limit=10&room=" + encodeURIComponent(selected.slug));
-  const body = $("alerts");
-  body.replaceChildren();
-  if (alerts.length === 0) {
-    const row = el("tr"); const cell = el("td", "muted", "No alerts yet.");
-    cell.colSpan = 3; row.appendChild(cell); body.appendChild(row);
-    return;
-  }
-  for (const a of alerts) {
-    const row = el("tr");
-    row.appendChild(el("td", "", new Date(a.timestamp * 1000).toLocaleString()));
-    row.appendChild(el("td", "", String(a.count)));
-    row.appendChild(el("td", "", a.density.toFixed(1)));
-    body.appendChild(row);
-  }
-}
-
-/* ---------- email alert settings ---------- */
-function emailMsg(text) { $("emails-msg").textContent = text; }
-
-async function loadEmails() {
-  const r = await api("/api/emails");
-  $("sender").value = r.sender_email;
-  $("emails").value = r.recipients;
-  $("apppw").value = "";   // the server never sends the password back
-  $("apppw").placeholder = r.password_set ? "••••••••••••••••" : "App password";
-}
-
-$("pw-toggle").addEventListener("click", () => {
-  const field = $("apppw"), show = field.type === "password";
-  field.type = show ? "text" : "password";
-  $("pw-toggle").textContent = show ? "Hide" : "Show";
-});
-
-$("emails-save").addEventListener("click", async () => {
-  try {
-    await post("/api/emails", {
-      sender_email: $("sender").value,
-      app_password: $("apppw").value,
-      recipients: $("emails").value,
-    });
-    await loadEmails();
-    emailMsg("Saved");
-  } catch (err) {
-    emailMsg(err.message);
-  }
-});
-
-/* ---------- refresh loop ---------- */
-async function refresh() {
-  try {
-    const [project, roomList] = await Promise.all([api("/api/project"), api("/api/rooms")]);
-    renderProject(project);
-    rooms = roomList;
-    if (!selected && rooms.length) {
-      let saved = null;
-      try { saved = localStorage.getItem("room"); } catch (e) {}
-      selectRoom((rooms.find(r => r.slug === saved) || rooms[0]).slug);
-    }
-    renderRooms();
-    renderRoom();
-  } catch (err) {
-    $("pill-text").textContent = "Cannot reach dashboard server";
-  }
-}
-
-$("hours").addEventListener("change", renderHistory);
-loadEmails().catch(err => emailMsg(err.message));
-refresh();
-setInterval(refresh, 3000);
-setInterval(refreshFrame, 1000);
-setInterval(() => { renderHistory(); renderAlerts(); }, 10000);
+const $=id=>document.getElementById(id);let rooms=[],running=false,chart=null,roomBySlug=new Map(),cards=new Map();
+function el(tag,cls,txt){const n=document.createElement(tag);if(cls)n.className=cls;if(txt!==undefined)n.textContent=txt;return n}
+async function api(url,options){const r=await fetch(url,options);let b={};try{b=await r.json()}catch(e){}if(!r.ok)throw new Error(b.error||b.message||`HTTP ${r.status}`);return b}
+const post=(url,data)=>api(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data||{})});
+function createCard(r){const card=el('article','camera-card');card.dataset.slug=r.slug;const top=el('div','camera-top');const left=el('div');left.append(el('div','cam-name',r.name));left.append(el('div','cam-role',r.restricted_access?'RESTRICTED-ACCESS MONITOR':'OVERCROWDING MONITOR'));const state=el('span','state offline','OFFLINE');state.dataset.state='1';top.append(left,state);const feed=el('div','feed');const img=el('img');img.alt=r.name+' live camera feed';img.style.display='none';const placeholder=el('div','feed-placeholder');placeholder.append(el('strong','','Waiting for camera feed'));placeholder.append(el('span','','Start monitoring to connect'));feed.append(img,placeholder,el('span','feed-corner','CAM  •  LIVE'),el('span','expand-hint','↗ Expand'));feed.addEventListener('click',()=>toggleExpand(card));const meta=el('div','camera-meta');const count=el('div');count.append(el('div','count-label','People detected'));const val=el('div','count-value','—');val.dataset.count='1';count.append(val,el('div','count-unit','persons in view'));const right=el('div','meta-right');const alert=el('strong','','NO ALERT');alert.dataset.alert='1';const updated=el('span','','Awaiting data');updated.dataset.updated='1';right.append(alert,updated);meta.append(count,right);card.append(top,feed,meta);$('camera-grid').append(card);cards.set(r.slug,{card,img,placeholder,state,val,alert,updated});}
+function toggleExpand(card){const was=card.classList.contains('expanded');document.querySelectorAll('.camera-card.expanded').forEach(c=>c.classList.remove('expanded'));if(!was)card.classList.add('expanded')}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.camera-card.expanded').forEach(c=>c.classList.remove('expanded'))});
+function syncCards(){const grid=$('camera-grid');for(const r of rooms){if(!cards.has(r.slug))createCard(r);const ui=cards.get(r.slug);const alertOn=!!(r.online&&r.alert);ui.card.classList.toggle('alert',alertOn);ui.state.textContent=!running?'STOPPED':(r.online?'ONLINE':'OFFLINE');ui.state.className='state '+(!running?'offline':(r.online?'online':'offline'));if(alertOn){ui.state.textContent=r.restricted_access?'ACCESS ALERT':'CROWD ALERT';ui.state.className='state alert'}ui.val.textContent=r.has_data?String(r.count):'—';ui.alert.textContent=alertOn?(r.restricted_access?'PERSON DETECTED':'OVERCROWDING'):(r.online?'NORMAL':'NO ALERT');ui.updated.textContent=r.has_data?`Updated ${r.age_seconds}s ago`:'Awaiting data';const frameUrl=`/api/frame/${encodeURIComponent(r.slug)}?t=${Date.now()}`;ui.img.onload=()=>{ui.img.style.display='block';ui.placeholder.style.display='none'};ui.img.onerror=()=>{ui.img.style.display='none';ui.placeholder.style.display='grid';ui.placeholder.firstChild.textContent=running?'Camera feed unavailable':'Monitoring is stopped';ui.placeholder.lastChild.textContent=running?'Check camera IP and stream availability':'Select Start monitoring'};ui.img.src=frameUrl;}
+$('kpi-online').textContent=`${rooms.filter(r=>r.online).length} / ${rooms.length}`;const readings=rooms.filter(r=>r.has_data);$('kpi-people').textContent=readings.length?String(readings.reduce((n,r)=>n+(r.count||0),0)):'—';$('kpi-alerts').textContent=String(rooms.filter(r=>r.online&&r.alert).length);
+const old=$('history-camera').value;$('history-camera').replaceChildren();for(const r of rooms){const o=el('option','',r.name);o.value=r.slug;$('history-camera').append(o)}if(rooms.some(r=>r.slug===old))$('history-camera').value=old;}
+function renderProject(p){running=p.running;$('status').className='status-pill '+(p.running?'on':(p.crashed?'crash':''));$('status-text').textContent=p.running?'MONITORING ACTIVE':(p.crashed?'PROCESS ERROR':'SYSTEM STANDBY');const b=$('monitor-btn');b.textContent=p.running?'Stop monitoring':'Start monitoring';b.className=p.running?'danger':'primary';b.disabled=false;$('log').style.display=p.crashed&&p.log_tail?'block':'none';$('log').textContent=p.log_tail||''}
+$('monitor-btn').addEventListener('click',async()=>{const b=$('monitor-btn');b.disabled=true;b.textContent=running?'Stopping…':'Starting…';try{await post(running?'/api/project/stop':'/api/project/start')}catch(e){alert(e.message)}await refresh()});
+async function renderHistory(){const slug=$('history-camera').value;if(!slug)return;const note=$('chart-note');if(typeof Chart==='undefined'){note.textContent='Chart library unavailable. Connect to the internet to load charts.';return}try{const rows=await api(`/api/history?room=${encodeURIComponent(slug)}&hours=${$('hours').value}`);note.textContent=rows.length?'':'No readings in this time range.';const data={labels:rows.map(r=>new Date(r.time*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})),datasets:[{label:'Average people',data:rows.map(r=>r.avg_count),borderColor:'#38bdf8',backgroundColor:'#38bdf822',fill:true,tension:.3},{label:'Peak people',data:rows.map(r=>r.max_count),borderColor:'#fb7185',tension:.3}]};if(chart){chart.data=data;chart.update()}else chart=new Chart($('chart'),{type:'line',data,options:{animation:false,responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#b8c7da'}}},scales:{x:{ticks:{color:'#91a2b9'},grid:{color:'#26364d'}},y:{beginAtZero:true,ticks:{color:'#91a2b9',precision:0},grid:{color:'#26364d'}}}}})}catch(e){note.textContent=e.message}}
+async function renderAlerts(){try{const rows=await api('/api/alerts?limit=12');const body=$('alerts');body.replaceChildren();if(!rows.length){body.append(el('tr')).append(el('td','empty','No alerts recorded.'));body.firstChild.firstChild.colSpan=4;return}for(const a of rows){const tr=el('tr');tr.append(el('td','',new Date(a.timestamp*1000).toLocaleString()),el('td','',a.camera_name));const isAccess=a.alert_type==='unauthorised_access';tr.append(el('td',isAccess?'alert-type':'normal-type',isAccess?'RESTRICTED ACCESS':'OVERCROWDING'),el('td','',String(a.count)));body.append(tr)}}catch(e){}}
+async function refresh(){try{const [p,list]=await Promise.all([api('/api/project'),api('/api/rooms')]);renderProject(p);rooms=list;roomBySlug=new Map(rooms.map(r=>[r.slug,r]));syncCards()}catch(e){$('status-text').textContent='DASHBOARD SERVER UNAVAILABLE'}}
+async function loadEmails(){const r=await api('/api/emails');$('sender').value=r.sender_email;$('emails').value=r.recipients;$('apppw').value='';$('apppw').placeholder=r.password_set?'Saved app password (leave blank to keep)':'App password'}
+$('pw-toggle').addEventListener('click',()=>{const f=$('apppw'),show=f.type==='password';f.type=show?'text':'password';$('pw-toggle').textContent=show?'Hide':'Show'});
+$('emails-save').addEventListener('click',async()=>{try{await post('/api/emails',{sender_email:$('sender').value,app_password:$('apppw').value,recipients:$('emails').value});await loadEmails();$('emails-msg').textContent='Settings saved.'}catch(e){$('emails-msg').textContent=e.message}});
+$('hours').addEventListener('change',renderHistory);$('history-camera').addEventListener('change',renderHistory);loadEmails().catch(e=>$('emails-msg').textContent=e.message);refresh();setInterval(refresh,3000);setInterval(renderHistory,12000);setInterval(renderAlerts,6000);
 </script>
 </body>
 </html>

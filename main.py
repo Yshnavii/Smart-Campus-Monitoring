@@ -69,6 +69,7 @@ def main():
             output_path=camera_spec.output_path,
             alert_callback=alert_handler.process,
             result_callback=database.insert_detection,
+            restricted_access=camera_spec.restricted_access,
         )
         print(f"Registered: {camera_spec.name} ({camera_spec.source})")
 

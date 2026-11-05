@@ -32,7 +32,8 @@ FRAME_MAX_AGE_SECONDS = 15
 app = Flask(__name__)
 database = Database(DB_PATH)
 
-ROOMS = [{"name": c.name, "slug": slugify(c.name)} for c in DEFAULT_CAMERAS]
+ROOMS = [{"name": c.name, "slug": slugify(c.name),
+          "restricted_access": c.restricted_access} for c in DEFAULT_CAMERAS]
 
 
 def find_room(slug):
@@ -208,7 +209,8 @@ def api_alerts():
     limit = min(max(request.args.get("limit", default=10, type=int), 1), 100)
     rows = database.recent_alerts(limit=200)
     result = [{"id": r[0], "camera_name": r[1], "timestamp": r[2],
-               "frame_idx": r[3], "count": r[4], "density": r[5]} for r in rows]
+               "frame_idx": r[3], "count": r[4], "density": r[5],
+               "alert_type": r[6] if len(r) > 6 else "overcrowding"} for r in rows]
     if room is not None:
         result = [a for a in result if a["camera_name"] == room["name"]]
     return jsonify(result[:limit])
